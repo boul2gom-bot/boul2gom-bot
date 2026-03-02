@@ -1,0 +1,123 @@
+name: 🤖 Auto-React to recent activity
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  react:
+    name: 🎉 React to recent activity
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔐 Generate ephemeral token for main account
+        id: app-token
+        uses: actions/create-github-app-token@v2.2.1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_KEY }}
+          owner: 'boul2gom'
+
+      - name: 🚀 Scan and react dynamically
+        uses: actions/github-script@v8.0.0
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            console.log(`🔍 Fetching repositories...`);
+            
+            // 1. Fetch all repositories owned by the bot
+            const bot_repos = await github.paginate(github.rest.repos.listForUser, {
+              username: "boul2gom-bot",
+              type: 'owner'
+            });
+            
+            // 2. Filter to keep only the forked repositories
+            const repos = bot_repos.filter(repo => repo.fork).map(repo => repo.name);
+            
+            if (repos.length === 0) {
+              console.log(`⚠️ No forks found for boul2gom-bot. Exiting.`);
+              return;
+            }
+            
+            console.log(`📝 Found ${repos.length} fork(s). Monitoring: ${repos.join(', ')}`);
+            
+            // Calculate the date threshold (last 24 hours)
+            const sinceDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+            // 3. Loop through each dynamically found repository
+            for (const name of repos) {
+              console.log(`\n========================================`);
+              console.log(`🔍 Scanning boul2gom/${name}...`);
+              
+              // ═══════════════════════════════════════════════════════════
+              // A. Reactions on recent ISSUES and PULL REQUESTS
+              // ═══════════════════════════════════════════════════════════
+              try {
+                const query = `repo:boul2gom/${name} is:open created:>=${sinceDate.split('T')[0]}`;
+                const recentItems = await github.rest.search.issuesAndPullRequests({ q: query });
+                
+                if (recentItems.data.total_count > 0) {
+                  for (const item of recentItems.data.items) {
+                    // Ignore items created by bots to avoid infinite feedback loops
+                    if (item.user?.login?.includes('[bot]')) continue;
+                    
+                    try {
+                      await github.rest.reactions.createForIssue({
+                        owner: "boul2gom",
+                        repo: name,
+                        issue_number: item.number,
+                        content: 'eyes' // 👀
+                      });
+                      console.log(`✅ Added 👀 reaction to issue/PR #${item.number}`);
+                    } catch (e) {
+                      console.log(`⚠️ Could not react to #${item.number}: ${e.message}`);
+                    }
+                  }
+                } else {
+                  console.log(`ℹ️ No recent issues or pull requests found.`);
+                }
+              } catch (e) {
+                console.log(`⚠️ Failed to fetch issues for ${name}: ${e.message}`);
+              }
+              
+              // ═══════════════════════════════════════════════════════════
+              // B. Reactions on recent RELEASES
+              // ═══════════════════════════════════════════════════════════
+              try {
+                const releases = await github.rest.repos.listReleases({ 
+                  owner: "boul2gom", 
+                  repo: name, 
+                  per_page: 5 
+                });
+                
+                let foundRecentRelease = false;
+                for (const release of releases.data) {
+                  if (new Date(release.created_at) >= new Date(sinceDate)) {
+                    foundRecentRelease = true;
+                    try {
+                      await github.rest.reactions.createForRelease({
+                        owner: "boul2gom",
+                        repo: name,
+                        release_id: release.id,
+                        content: 'hooray' // 🎉
+                      });
+                      await github.rest.reactions.createForRelease({
+                        owner: "boul2gom",
+                        repo: name,
+                        release_id: release.id,
+                        content: 'rocket' // 🚀
+                      });
+                      console.log(`✅ Added 🎉 and 🚀 reactions to release "${release.tag_name}"`);
+                    } catch (e) {
+                      console.log(`⚠️ Could not react to release ${release.tag_name}: ${e.message}`);
+                    }
+                  }
+                }
+                
+                if (!foundRecentRelease) {
+                   console.log(`ℹ️ No recent releases found.`);
+                }
+              } catch (e) {
+                console.log(`⚠️ Failed to fetch releases for ${name}: ${e.message}`);
+              }
+            }
