@@ -1,0 +1,52 @@
+name: 🔄 Auto-Sync forked repositories
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-forks:
+    name: 🔄 Sync forked repositories with upstream
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔐 Generate ephemeral token for bot account
+        id: app-token
+        uses: actions/create-github-app-token@v2.2.1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_KEY }}
+          owner: ${{ github.repository_owner }} 
+
+      - name: 🚀 Sync all forks dynamically
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          BOT_ACCOUNT="${{ github.repository_owner }}"
+          echo "🔍 Fetching all forks for $BOT_ACCOUNT..."
+          
+          # Retrieves the list of all forked repositories owned by the bot
+          FORKS=$(gh repo list $BOT_ACCOUNT --fork --json name --jq '.[].name')
+          
+          if [ -z "$FORKS" ]; then
+            echo "⚠️ No forks found for $BOT_ACCOUNT."
+            exit 0
+          fi
+          
+          echo "📝 Found the following forks:"
+          echo "$FORKS"
+          echo "----------------------------------------"
+          
+          # Loop through each fork and sync it with its upstream parent
+          for REPO in $FORKS; do
+            echo "⏳ Syncing $BOT_ACCOUNT/$REPO..."
+            
+            gh repo sync "$BOT_ACCOUNT/$REPO"
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ $REPO synced successfully!"
+            else
+              echo "⚠️ Failed to sync $REPO (It might already be up to date or have conflicts)."
+            fi
+            echo "----------------------------------------"
+          done
