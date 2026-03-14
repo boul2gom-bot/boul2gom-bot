@@ -8,21 +8,11 @@
 
 ---
 
-<p align="center">
-  <a href="https://crates.io/crates/yt-dlp">
-    <img src="https://img.shields.io/crates/v/yt-dlp?label=yt-dlp&logo=Rust" alt="yt-dlp crate"/>
-  </a>
-  <a href="https://crates.io/crates/media-seek">
-    <img src="https://img.shields.io/crates/v/media-seek?label=media-seek&logo=Rust" alt="media-seek crate"/>
-  </a>
-</p>
-
-## 📂 Repositories
-
-| Repository | Description |
-|------------|-------------|
-| [boul2gom/yt-dlp](https://github.com/boul2gom/yt-dlp) | Async Rust library wrapping yt-dlp and ffmpeg, with auto dependency installation |
-| [boul2gom/ffmpeg-builds](https://github.com/boul2gom/ffmpeg-builds) | Pre-built FFmpeg binaries |
+| Repository | Version | Description |
+| :--- | :--- | :--- |
+| [**yt-dlp**](https://github.com/boul2gom/yt-dlp) | [![yt-dlp](https://img.shields.io/github/v/release/boul2gom/yt-dlp?logo=Rust&label=)](https://github.com/boul2gom/yt-dlp) | 🎬️ A Rust library (with auto dependencies downloading) for yt-dlp |
+| [**actions**](https://github.com/boul2gom/actions) | [![actions](https://img.shields.io/github/v/release/boul2gom/actions?logo=GitHub&label=)](https://github.com/boul2gom/actions) | 🐳 A set of reusable actions across my repositories |
+| [**ffmpeg-builds**](https://github.com/boul2gom/ffmpeg-builds) | [![ffmpeg-builds](https://img.shields.io/github/v/release/boul2gom/ffmpeg-builds?logo=GitHub&label=)](https://github.com/boul2gom/ffmpeg-builds) | 📦 Pre-built `ffmpeg` binaries for every platform |
 
 ---
 
